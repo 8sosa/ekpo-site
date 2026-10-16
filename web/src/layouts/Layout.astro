@@ -1,0 +1,156 @@
+---
+import '../styles/site.css'
+import NewsletterForm from '../components/NewsletterForm.astro'
+import {getSite, U} from '../lib/data'
+import {art} from '../lib/art'
+import {imageUrl, type SanityImage} from '../lib/sanity'
+import {SOCIAL_ICONS, SOCIAL_NAMES, CHEV, CLOSE} from '../components/Icons'
+
+interface Props {
+  title?: string            // page title; " | EKPO" is added
+  description?: string
+  image?: SanityImage | null // share image for link previews
+  nav?: 'videos' | 'about' | 'shop' | 'contact' | 'careers'
+  page?: string             // sets <body data-page>, used by scripts
+  signup?: boolean          // show the newsletter band above the footer
+  type?: 'website' | 'article'
+  noindex?: boolean
+}
+const {title, description, image, nav, page = 'page', signup = true, type = 'website', noindex = false} = Astro.props
+const site = await getSite()
+const {settings, sections, socials} = site
+const fullTitle = title ? `${title} | EKPO` : 'EKPO | Fashion, art and culture from Nigeria'
+const desc = description || 'EKPO is a Nigerian magazine covering fashion, editorials, art, music, brands, events and food.'
+const canonical = new URL(Astro.url.pathname, Astro.site)
+const ogImage = imageUrl(image, 1200, 630) || new URL('/og-default.png', Astro.site).href
+const NAV: [string, string, Props['nav']][] = [['/videos/', 'Videos', 'videos'], ['/about/', 'About', 'about'], ['/shop/', 'Shop', 'shop'], ['/contact/', 'Contact', 'contact'], ['/careers/', 'Career', 'careers']]
+const year = new Date().getFullYear()
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={desc} />
+  <link rel="canonical" href={canonical} />
+  {noindex && <meta name="robots" content="noindex" />}
+  <meta property="og:site_name" content="EKPO" />
+  <meta property="og:type" content={type} />
+  <meta property="og:title" content={title || fullTitle} />
+  <meta property="og:description" content={desc} />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="sitemap" href="/sitemap-index.xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet" />
+  <slot name="head" />
+</head>
+<body data-page={page} data-email={settings.email}>
+  <a href="#main" class="sr">Skip to content</a>
+  <div class="progress" id="progress" hidden></div>
+  <div class="strip"><div class="wrap">
+    <span class="tagline">{settings.tagline || 'Fashion, art and culture from Nigeria and beyond'}</span>
+    <div class="socials">{socials.map(([k, url]) => <a href={url} target="_blank" rel="noopener" aria-label={`EKPO on ${SOCIAL_NAMES[k]}`} set:html={SOCIAL_ICONS[k]} />)}</div>
+  </div></div>
+
+  <header class="site" id="siteHeader">
+    <div class="wrap bar">
+      <button class="icon-btn burger" id="burger" aria-label="Open menu" aria-controls="drawer" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" /></svg></button>
+      <a class="logo" href="/" aria-label="EKPO home"><i></i>EKPO</a>
+      <ul class="primary">
+        <li><button id="sectionsBtn" aria-expanded="false" aria-controls="mega">Sections <Fragment set:html={CHEV} /></button></li>
+        {NAV.map(([href, label, key]) => <li><a href={href} aria-current={nav === key ? 'page' : undefined}>{label}</a></li>)}
+      </ul>
+      <div class="tools">
+        <button class="icon-btn" id="searchBtn" aria-label="Search EKPO"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg></button>
+        <a class="icon-btn cart-btn" href="/bag/" aria-label="Shopping bag"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 016 0v2" /></svg><b id="cartCount"></b></a>
+        <button class="sub-btn" id="openPop">Subscribe</button>
+      </div>
+    </div>
+    <div class="mega" id="mega">
+      <div class="wrap">
+        <div><h2>Sections</h2>
+          <div class="tiles">{sections.map((s, i) => <a class="tile" href={U.section(s.slug)}><Fragment set:html={art(i * 3 + 2, {figure: false, w: 320, h: 200})} /><span>{s.name}</span></a>)}</div>
+        </div>
+        <div><h2>More from EKPO</h2>
+          <ul class="more-links">
+            <li><a href="/videos/">Videos</a></li><li><a href="/shop/">Shop</a></li><li><a href="/#top">Featured</a></li>
+            <li class="gap"></li>
+            <li><a href="/about/">About us</a></li><li><a href="/contact/">Contact us</a></li><li><a href="/careers/">Careers</a></li><li><a href="/services/">Services</a></li><li><a href="/advertise/">Advertise</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <nav class="catbar" aria-label="Sections"><div class="wrap"><ul>
+      {sections.map((s) => <li><button data-sec={s.slug} aria-expanded="false" aria-controls="drop">{s.name}</button></li>)}
+    </ul></div></nav>
+    <div class="drop" id="drop"></div>
+  </header>
+
+  <div class="drawer" id="drawer" aria-hidden="true" inert>
+    <div class="top"><span class="logo"><i></i>EKPO</span><button class="icon-btn" id="closeDrawer" aria-label="Close menu" set:html={CLOSE} /></div>
+    <details open><summary>Sections <Fragment set:html={CHEV} /></summary><ul>{sections.map((s) => <li><a href={U.section(s.slug)}>{s.name}</a></li>)}</ul></details>
+    {NAV.map(([href, label]) => <a href={href}>{label}</a>)}
+    <a href="/bag/">Bag</a>
+  </div>
+
+  <main id="main"><slot /></main>
+
+  {signup && (
+    <section class="signup" id="newsletter">
+      <div class="bg" aria-hidden="true" set:html={art(33, {w: 1600, h: 700})} />
+      <div class="in"><small>The EKPO newsletter</small>
+        {settings.newsletterHeading && <h2>{settings.newsletterHeading}</h2>}
+        <NewsletterForm source="embed" id="nlEmbed" />
+      </div>
+    </section>
+  )}
+
+  <footer class="site">
+    <div class="wrap">
+      <div class="foot">
+        <div><a class="logo" href="/"><i></i>EKPO</a>
+          {settings.mission && <p class="mission">{settings.mission}</p>}</div>
+        <div><h2>Explore</h2><ul>
+          <li><a href="/about/">About</a></li><li><a href={U.section('events')}>Events</a></li><li><a href="/#top">Featured</a></li><li><a href={U.section('interviews')}>Interviews</a></li><li><a href="/videos/">Videos</a></li><li><a href="/shop/">Store</a></li></ul></div>
+        <div><h2>Work with us</h2><ul>
+          <li><a href="/careers/">Careers</a></li><li><a href="/services/">Services</a></li><li><a href="/advertise/">Advertise</a></li><li><a href="/contact/">Contact</a></li></ul></div>
+        <div><h2>Get in touch</h2><ul><li><a href={`mailto:${settings.email}`}>{settings.email}</a></li></ul>
+          <div class="socials">{socials.map(([k, url]) => <a href={url} target="_blank" rel="noopener" aria-label={`EKPO on ${SOCIAL_NAMES[k]}`} set:html={SOCIAL_ICONS[k]} />)}</div>
+          <h2>Subscribe</h2><NewsletterForm source="footer" id="nlFoot" placeholder="Email address" />
+        </div>
+      </div>
+      <div class="legal"><span>© {year} EKPO Magazine, Lagos</span><nav><a href="/privacy/">Privacy policy</a><a href="/terms/">Terms of use</a></nav></div>
+    </div>
+  </footer>
+
+  <div class="pop" id="pop" role="dialog" aria-modal="true" aria-labelledby="popTitle">
+    <div class="box">
+      <button class="close" id="closePop" aria-label="Close newsletter sign-up" set:html={CLOSE} />
+      <div class="pic" aria-hidden="true" set:html={art(8, {w: 500, h: 700})} />
+      <div class="body"><h2 id="popTitle">{settings.popupHeading || 'Get the newsletter'}</h2>
+        {settings.popupText && <p>{settings.popupText}</p>}
+        <NewsletterForm source="popup" id="nlPop" />
+        <button class="no" id="noThanks">No thanks</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="search" id="search" role="dialog" aria-modal="true" aria-label="Search">
+    <button class="icon-btn close" id="closeSearch" aria-label="Close search" set:html={CLOSE} />
+    <form class="in" action="/search/" role="search">
+      <label class="sr" for="q">Search EKPO</label>
+      <input id="q" name="q" placeholder="Search EKPO" autocomplete="off" />
+      <ul class="results" id="results"></ul>
+      <button class="search-all" type="submit">See all results</button>
+    </form>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>import '../scripts/site'</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+---
+import Layout from '../layouts/Layout.astro'
+import PageHead from '../components/PageHead.astro'
+import {getSite} from '../lib/data'
+
+const site = await getSite()
+const p = site.sitePage('contactPage')
+const s = site.settings
+---
+<Layout title={p.title} description={p.description || p.lede} nav="contact" page="contact" signup={false}>
+  <PageHead crumbs={[['Home', '/'], ['Contact']]} title={p.title} lede={p.lede} />
+  <div class="page-body"><div class="wrap split">
+    <div class="info">
+      {p.detailsHeading && <h2>{p.detailsHeading}</h2>}
+      <dl>
+        <dt>General</dt><dd><a href={`mailto:${s.email}`}>{s.email}</a></dd>
+        {s.pitchesEmail && <><dt>Story pitches</dt><dd><a href={`mailto:${s.pitchesEmail}`}>{s.pitchesEmail}</a></dd></>}
+        {s.partnersEmail && <><dt>Advertising and partnerships</dt><dd><a href={`mailto:${s.partnersEmail}`}>{s.partnersEmail}</a></dd></>}
+        {s.address && <><dt>Office</dt><dd>{s.address}{s.hours && <><br />{s.hours}</>}</dd></>}
+      </dl>
+    </div>
+    <form class="form" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+      <input type="hidden" name="form-name" value="contact" />
+      <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
+      <div class="two">
+        <div class="field"><label for="f-name">Your name</label><input id="f-name" name="name" autocomplete="name" required /></div>
+        <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" required /></div>
+      </div>
+      <div class="field"><label for="subject">What is it about?</label>
+        <select id="subject" name="subject" required><option value="">Choose a topic</option>{p.subjects.map((x) => <option>{x}</option>)}</select>
+      </div>
+      <div class="field"><label for="f-msg">Message</label><textarea id="f-msg" name="message" required minlength="10"></textarea></div>
+      <div><button class="btn" type="submit">Send message</button></div>
+      <p class="form-status" role="status"></p>
+    </form>
+  </div></div>
+</Layout>
+
+<script>
+  import {$, bindForm} from '../scripts/core'
+  bindForm($<HTMLFormElement>('form[name=contact]')!)
+  // ?subject=Advertising preselects the topic (used by buttons elsewhere on the site)
+  const want = new URLSearchParams(location.search).get('subject'), sel = $<HTMLSelectElement>('#subject')!
+  if (want && [...sel.options].some((o) => o.value === want)) sel.value = want
+</script>

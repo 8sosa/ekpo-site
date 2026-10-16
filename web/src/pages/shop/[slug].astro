@@ -1,0 +1,73 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import Crumbs from '../../components/Crumbs.astro'
+import Media from '../../components/Media.astro'
+import ProductCard from '../../components/ProductCard.astro'
+import {getSite, U, naira, type Product} from '../../lib/data'
+
+export async function getStaticPaths() {
+  const site = await getSite()
+  return site.products.map((product) => ({params: {slug: product.slug}, props: {product}}))
+}
+interface Props { product: Product }
+const {product: p} = Astro.props
+const site = await getSite()
+const soldOut = p.available === false
+const also = site.products.filter((x) => x !== p).sort((a, b) => Number(b.category === p.category) - Number(a.category === p.category)).slice(0, 4)
+---
+<Layout title={p.name} description={p.description} image={p.image} nav="shop" page="product">
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Product', name: p.name, description: p.description,
+      offers: {'@type': 'Offer', price: p.price, priceCurrency: 'NGN', availability: `https://schema.org/${soldOut ? 'OutOfStock' : 'InStock'}`},
+    })} />
+  </Fragment>
+  <div class="wrap">
+    <div class="product">
+      <div class="gallery"><Media image={p.image} seed={p.seed} w={800} h={1000} figure={false} eager /></div>
+      <div>
+        <Crumbs items={[['Shop', '/shop/'], [p.category, U.shopCat(p.category)]]} />
+        <h1>{p.name}</h1>
+        <p class="price">{naira(p.price)}</p>
+        <p class="desc">{p.description} {p.related && <a href={p.related.url}>Read more</a>}</p>
+        <form id="buy" data-slug={p.slug} novalidate>
+          {p.optionLabel && p.optionValues?.length && (
+            <fieldset class="opt-group"><legend>{p.optionLabel}</legend><div class="opts">
+              {p.optionValues.map((v, i) => <label><input type="radio" name="opt" value={v} checked={i === 0} /><span>{v}</span></label>)}
+            </div></fieldset>
+          )}
+          <div class="buy-row">
+            <div class="qty">
+              <button type="button" data-d="-1" aria-label="Fewer">−</button>
+              <input type="number" id="qtyIn" value="1" min="1" max="20" aria-label="Quantity" />
+              <button type="button" data-d="1" aria-label="More">+</button>
+            </div>
+            <button class="btn" type="submit" disabled={soldOut}>{soldOut ? 'Sold out' : 'Add to bag'}</button>
+          </div>
+        </form>
+        <p class="note-sm">{p.digital ? 'Tickets are emailed within one working day of payment.' : 'Delivery in Lagos in 1-2 working days, elsewhere in Nigeria in 3-5.'}</p>
+        {p.details?.length && <ul class="details">{p.details.map((d) => <li>{d}</li>)}</ul>}
+      </div>
+    </div>
+    {also.length > 0 && (
+      <section class="sec" style="border:0;padding-top:0">
+        <h2 class="sec-title">You might also like</h2>
+        <div class="shop-grid">{also.map((x) => <ProductCard p={x} />)}</div>
+      </section>
+    )}
+  </div>
+</Layout>
+
+<script>
+  import {$, $$, Cart, toast} from '../../scripts/core'
+
+  const form = $<HTMLFormElement>('#buy')!, qty = $<HTMLInputElement>('#qtyIn')!
+  const clamp = (n: number) => Math.min(20, Math.max(1, n || 1))
+  $$('.qty button', form).forEach((b) => b.addEventListener('click', () => (qty.value = String(clamp(Number(qty.value) + Number(b.dataset.d))))))
+  form.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const opt = String(new FormData(form).get('opt') || '')
+    Cart.add(form.dataset.slug!, opt, clamp(Number(qty.value)))
+    toast(`Added to your bag. <a href="/bag/" style="text-decoration:underline;margin-left:8px">View bag (${Cart.count()})</a>`)
+  })
+</script>

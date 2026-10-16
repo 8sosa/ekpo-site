@@ -1,0 +1,68 @@
+---
+import Layout from '../layouts/Layout.astro'
+import PageHead from '../components/PageHead.astro'
+import {getSite, paragraphs} from '../lib/data'
+import {CHEV} from '../components/Icons'
+
+const site = await getSite()
+const {jobs, settings} = site
+const p = site.sitePage('careersPage')
+---
+<Layout title={p.title} description={p.description || p.lede} nav="careers" page="careers" signup={false}>
+  <PageHead crumbs={[['Home', '/'], ['Careers']]} title={p.title} lede={p.lede} />
+  <section class="sec"><div class="wrap">
+    <div class="sec-head"><h2>{p.rolesHeading || 'Open roles'}</h2><p>{jobs.length ? 'Tap a role to read more.' : p.noRolesText}</p></div>
+    <div class="jobs">
+      {jobs.map((j) => (
+        <details class="job" id={`job-${j.slug}`}>
+          <summary><div><h3>{j.title}</h3><small>{[j.type, j.location].filter(Boolean).join(' · ')}</small></div><Fragment set:html={CHEV} /></summary>
+          <div class="in">
+            {j.summary && <p>{j.summary}</p>}
+            {j.duties?.length && <div><h4>What you will do</h4><ul>{j.duties.map((d) => <li>{d}</li>)}</ul></div>}
+            {j.needs?.length && <div><h4>What we are looking for</h4><ul>{j.needs.map((d) => <li>{d}</li>)}</ul></div>}
+            <a class="btn apply" href="#apply" data-role={j.title}>Apply for this role</a>
+          </div>
+        </details>
+      ))}
+    </div>
+  </div></section>
+  <section class="sec band" id="apply"><div class="wrap split">
+    <div class="info">
+      {p.applyHeading && <h2>{p.applyHeading}</h2>}
+      {paragraphs(p.applyText).map((t) => <p>{t}</p>)}
+      {settings.careersEmail && <p>Questions? Email <a href={`mailto:${settings.careersEmail}`} style="border-bottom:1px solid var(--raffia)">{settings.careersEmail}</a>.</p>}
+    </div>
+    <form class="form" name="careers" method="POST" data-netlify="true" netlify-honeypot="bot-field" enctype="multipart/form-data" data-thanks={p.thanksText}>
+      <input type="hidden" name="form-name" value="careers" />
+      <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
+      <div class="two">
+        <div class="field"><label for="a-name">Full name</label><input id="a-name" name="name" autocomplete="name" required /></div>
+        <div class="field"><label for="a-email">Email</label><input id="a-email" name="email" type="email" autocomplete="email" required /></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="a-phone">Phone <small>(optional)</small></label><input id="a-phone" name="phone" type="tel" autocomplete="tel" /></div>
+        <div class="field"><label for="roleSel">Role</label>
+          <select id="roleSel" name="role" required><option value="">Choose a role</option>{jobs.map((j) => <option>{j.title}</option>)}<option>Open application</option></select>
+        </div>
+      </div>
+      <div class="field"><label for="a-link">Portfolio or writing samples</label><input id="a-link" name="portfolio" type="url" placeholder="https://" required /></div>
+      <div class="field"><label for="a-cv">CV <small>(PDF or Word, under 8 MB)</small></label><input id="a-cv" name="cv" type="file" accept=".pdf,.doc,.docx" required /></div>
+      <div class="field"><label for="a-note">Why EKPO?</label><textarea id="a-note" name="note" required minlength="20"></textarea></div>
+      <div><button class="btn" type="submit">Send application</button></div>
+      <p class="form-status" role="status"></p>
+    </form>
+  </div></section>
+</Layout>
+
+<script>
+  import {$, $$, bindForm} from '../scripts/core'
+
+  const form = $<HTMLFormElement>('form[name=careers]')!, sel = $<HTMLSelectElement>('#roleSel')!, cv = $<HTMLInputElement>('#a-cv')!
+  cv.addEventListener('change', () => cv.setCustomValidity(cv.files?.[0] && cv.files[0].size > 8 * 1024 * 1024 ? 'Your CV must be under 8 MB.' : ''))
+  bindForm(form, {okText: form.dataset.thanks})
+  $$('.apply').forEach((a) => a.addEventListener('click', () => (sel.value = a.dataset.role!)))
+  // /careers/?role=<job-slug> opens that role and preselects it
+  const role = new URLSearchParams(location.search).get('role')
+  const job = role && $<HTMLDetailsElement>(`#job-${CSS.escape(role)}`)
+  if (job) { job.open = true; sel.value = job.querySelector('.apply')!.getAttribute('data-role')! }
+</script>

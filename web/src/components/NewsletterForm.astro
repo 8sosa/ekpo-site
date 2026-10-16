@@ -1,0 +1,14 @@
+---
+/* Newsletter sign-up, submitted to Netlify Forms as "newsletter". */
+interface Props { source: 'embed' | 'footer' | 'popup'; id: string; placeholder?: string }
+const {source, id, placeholder = 'you@email.com'} = Astro.props
+---
+<form class="nl-form" name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" data-source={source} novalidate>
+  <input type="hidden" name="form-name" value="newsletter" />
+  <label class="sr" for={id}>Email address</label>
+  <input id={id} name="email" type="email" placeholder={placeholder} autocomplete="email" required />
+  <input type="hidden" name="source" value={source} />
+  <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
+  <button type="submit">Subscribe</button>
+</form>
+<div class="nl-msg" aria-live="polite"></div>

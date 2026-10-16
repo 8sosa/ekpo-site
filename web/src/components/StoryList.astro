@@ -1,0 +1,40 @@
+---
+/* A section or topic listing: optional lead block, then a grid that reveals 9 more at a time. */
+import Card from './Card.astro'
+import type {Article} from '../lib/data'
+
+interface Props { list: Article[]; lead?: boolean; emptyText: string }
+const {list, lead = false, emptyText} = Astro.props
+const PER = 9
+const useLead = lead && list.length > 4
+const rest = useLead ? list.slice(4) : list
+---
+{list.length === 0 && <p class="empty">{emptyText}</p>}
+{list.length > 0 && (
+  <>
+    <p class="count">{list.length} {list.length === 1 ? 'story' : 'stories'}</p>
+    {useLead && (
+      <div class="l-lead" style="margin-bottom:56px">
+        <div class="big"><Card a={list[0]} w={1000} h={800} /></div>
+        <div class="side">{list.slice(1, 4).map((a) => <Card a={a} w={400} h={400} />)}</div>
+      </div>
+    )}
+    <div class="l-3 paged" data-per={PER}>
+      {rest.map((a, i) => <div class="paged-item" hidden={i >= PER}><Card a={a} /></div>)}
+    </div>
+    {rest.length > PER && <div class="more-wrap"><button class="btn ghost" type="button" data-more>Load more stories</button></div>}
+  </>
+)}
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-more]').forEach((btn) => {
+    const grid = btn.closest('.wrap')!.querySelector<HTMLElement>('.paged')!
+    const per = Number(grid.dataset.per)
+    btn.addEventListener('click', () => {
+      const hidden = [...grid.querySelectorAll<HTMLElement>('.paged-item[hidden]')]
+      hidden.slice(0, per).forEach((el) => (el.hidden = false))
+      hidden[0]?.querySelector<HTMLAnchorElement>('h3 a')?.focus()
+      if (hidden.length <= per) btn.parentElement!.remove()
+    })
+  })
+</script>

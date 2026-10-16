@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro'
+import PageHead from '../components/PageHead.astro'
+import FeatureGrid from '../components/FeatureGrid.astro'
+import Buttons from '../components/Buttons.astro'
+import {getSite, paragraphs} from '../lib/data'
+
+const p = (await getSite()).sitePage('servicesPage')
+---
+<Layout title={`Services | ${p.title}`} description={p.description || p.lede} page="services">
+  <PageHead dark crumbs={[['Home', '/'], ['Services']]} title={p.title} lede={p.lede} />
+  {p.services?.length && <section class="sec"><div class="wrap"><FeatureGrid items={p.services} /></div></section>}
+  {(p.howHeading || p.buttons?.length) && (
+    <section class="sec band"><div class="wrap split">
+      <div class="info">{p.howHeading && <h2>{p.howHeading}</h2>}{paragraphs(p.howText).map((t) => <p>{t}</p>)}</div>
+      <Buttons items={p.buttons} />
+    </div></section>
+  )}
+</Layout>

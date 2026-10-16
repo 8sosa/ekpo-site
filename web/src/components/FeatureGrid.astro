@@ -1,0 +1,17 @@
+---
+import type {Feature} from '../lib/data'
+
+interface Props { items?: Feature[] }
+const {items = []} = Astro.props
+---
+{items.length > 0 && (
+  <div class="feature-grid">
+    {items.map((f) => (
+      <div>
+        <h3>{f.title}</h3>
+        {f.text && <p>{f.text}</p>}
+        {f.points?.length && <ul>{f.points.map((p) => <li>{p}</li>)}</ul>}
+      </div>
+    ))}
+  </div>
+)}

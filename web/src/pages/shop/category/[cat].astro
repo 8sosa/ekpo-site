@@ -1,0 +1,11 @@
+---
+import ShopIndex from '../../../components/ShopIndex.astro'
+import {getSite, slugify} from '../../../lib/data'
+
+export async function getStaticPaths() {
+  const site = await getSite()
+  return site.shopCategories.map((category) => ({params: {cat: slugify(category)}, props: {category}}))
+}
+const {category} = Astro.props
+---
+<ShopIndex category={category} />

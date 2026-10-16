@@ -1,0 +1,55 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Crumbs from '../components/Crumbs.astro'
+import {getSite, U} from '../lib/data'
+
+const site = await getSite()
+---
+<Layout title="Search" page="search" noindex>
+  <header class="page-head"><div class="wrap">
+    <Crumbs items={[['Home', '/'], ['Search']]} />
+    <h1 class="sr">Search EKPO</h1>
+    <form action="/search/" role="search" class="search-page-form">
+      <label class="sr" for="q2">Search EKPO</label>
+      <input id="q2" name="q" placeholder="Search stories, videos and products" />
+      <button class="btn" type="submit">Search</button>
+    </form>
+    <p class="lede" id="summary">Search every story, video and product on EKPO.</p>
+  </div></header>
+  <div class="page-body"><div class="wrap" id="searchResults"></div></div>
+  <template id="noResults">
+    <p class="empty">Nothing matched. Try a broader word, or browse a section:
+      {site.sections.map((s, i) => <>{i > 0 && ', '}<a href={U.section(s.slug)} style="text-decoration:underline">{s.name}</a></>)}.
+    </p>
+  </template>
+</Layout>
+
+<script>
+  import {$, esc} from '../scripts/core'
+  import {searchIndex, searchFor, type SearchItem} from '../scripts/site'
+  import {art} from '../lib/art'
+  import {fmtDate} from '../lib/format'
+
+  const term = (new URLSearchParams(location.search).get('q') || '').trim()
+  const input = $<HTMLInputElement>('#q2')!
+  input.value = term
+  const media = (r: SearchItem, w: number, h: number, figure = true) => (r.i ? `<img class="media-img" src="${r.i}" alt="" loading="lazy">` : art(r.s, {w, h, figure}))
+  const post = (r: SearchItem) => `<article class="card"><a class="img" href="${r.u}" tabindex="-1" aria-hidden="true">${media(r, 800, 600)}</a>
+    <div class="body"><span class="cat">${esc(r.k)}</span><h3><a href="${r.u}">${esc(r.t)}</a></h3><p class="ex">${esc(r.e)}</p>${r.d ? `<p class="meta">${fmtDate(r.d)}</p>` : ''}</div></article>`
+  const video = (r: SearchItem) => `<a class="vid" href="${r.u}"><div class="img">${media(r, 800, 500)}<span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4l14 8-14 8z"/></svg></span></div><h3>${esc(r.t)}</h3></a>`
+  const product = (r: SearchItem) => `<article class="product-card"><a class="img" href="${r.u}" tabindex="-1" aria-hidden="true">${media(r, 640, 800, false)}</a><h3><a href="${r.u}">${esc(r.t)}</a></h3><p class="price">${esc(r.e)}</p></article>`
+
+  if (!term) input.focus()
+  else {
+    document.title = `Search: ${term} | EKPO`
+    const hits = searchFor(await searchIndex(), term)
+    $('#summary')!.textContent = `${hits.length} result${hits.length === 1 ? '' : 's'} for “${term}”`
+    const of = (type: SearchItem['type']) => hits.filter((h) => h.type === type)
+    const posts = of('post'), vids = of('video'), prods = of('product')
+    $('#searchResults')!.innerHTML = hits.length
+      ? (posts.length ? `<h2 class="sec-title">Stories</h2><div class="l-3" style="margin-bottom:56px">${posts.map(post).join('')}</div>` : '') +
+        (vids.length ? `<h2 class="sec-title">Videos</h2><div class="vid-list light" style="margin-bottom:56px">${vids.map(video).join('')}</div>` : '') +
+        (prods.length ? `<h2 class="sec-title">Shop</h2><div class="shop-grid">${prods.map(product).join('')}</div>` : '')
+      : $<HTMLTemplateElement>('#noResults')!.innerHTML
+  }
+</script>

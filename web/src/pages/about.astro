@@ -1,0 +1,44 @@
+---
+import Layout from '../layouts/Layout.astro'
+import PageHead from '../components/PageHead.astro'
+import Media from '../components/Media.astro'
+import FeatureGrid from '../components/FeatureGrid.astro'
+import Buttons from '../components/Buttons.astro'
+import {getSite, U, initials} from '../lib/data'
+import {renderBody} from '../lib/portableText'
+
+const site = await getSite()
+const p = site.sitePage('aboutPage')
+---
+<Layout title={p.title} description={p.description || p.lede} nav="about" page="about">
+  <PageHead crumbs={[['Home', '/'], ['About']]} title={p.title} lede={p.lede} />
+  {(p.quote || p.story?.length) && (
+    <section class="sec"><div class="wrap split">
+      <div>{p.quote && <p class="big-quote">{p.quote}</p>}</div>
+      <div class="info" set:html={renderBody(p.story || [])} />
+    </div></section>
+  )}
+  {p.coverage?.length && (
+    <section class="sec band"><div class="wrap">
+      <div class="sec-head"><h2>{p.coverageHeading}</h2>{p.coverageIntro && <p>{p.coverageIntro}</p>}</div>
+      <FeatureGrid items={p.coverage} />
+    </div></section>
+  )}
+  <section class="sec"><div class="wrap">
+    <div class="sec-head"><h2>{p.teamHeading || 'The team'}</h2>{p.teamIntro && <p>{p.teamIntro}</p>}</div>
+    <div class="team">
+      {site.writers.map((w) => (
+        <a href={U.writer(w.slug)}>
+          <div class="avatar" aria-hidden="true">{w.photo?.asset ? <Media image={w.photo} seed={1} w={400} h={400} /> : initials(w.name)}</div>
+          <h3>{w.name}</h3><p>{w.role}</p>
+        </a>
+      ))}
+    </div>
+  </div></section>
+  {(p.workHeading || p.buttons?.length) && (
+    <section class="sec band"><div class="wrap split">
+      <div class="info">{p.workHeading && <h2>{p.workHeading}</h2>}{p.workText && <p>{p.workText}</p>}</div>
+      <Buttons items={p.buttons} />
+    </div></section>
+  )}
+</Layout>

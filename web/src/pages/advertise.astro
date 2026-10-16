@@ -1,0 +1,50 @@
+---
+import Layout from '../layouts/Layout.astro'
+import PageHead from '../components/PageHead.astro'
+import FeatureGrid from '../components/FeatureGrid.astro'
+import {getSite, paragraphs} from '../lib/data'
+
+const site = await getSite()
+const p = site.sitePage('advertisePage')
+const {settings} = site
+---
+<Layout title={p.title} description={p.description || p.lede} page="advertise" signup={false}>
+  <PageHead crumbs={[['Home', '/'], ['Advertise']]} title={p.title} lede={p.lede} />
+  {p.options?.length && (
+    <section class="sec"><div class="wrap">
+      <div class="sec-head"><h2>{p.optionsHeading}</h2>{p.optionsIntro && <p>{p.optionsIntro}</p>}</div>
+      <FeatureGrid items={p.options} />
+    </div></section>
+  )}
+  <section class="sec band"><div class="wrap split">
+    <div class="info">
+      {p.formHeading && <h2>{p.formHeading}</h2>}
+      {paragraphs(p.formText).map((t) => <p>{t}</p>)}
+      {settings.partnersEmail && <p>Or email <a href={`mailto:${settings.partnersEmail}`} style="border-bottom:1px solid var(--raffia)">{settings.partnersEmail}</a>.</p>}
+    </div>
+    <form class="form" name="advertise" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+      <input type="hidden" name="form-name" value="advertise" />
+      <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
+      <div class="two">
+        <div class="field"><label for="ad-co">Company or brand</label><input id="ad-co" name="company" autocomplete="organization" required /></div>
+        <div class="field"><label for="ad-name">Your name</label><input id="ad-name" name="name" autocomplete="name" required /></div>
+      </div>
+      <div class="two">
+        <div class="field"><label for="ad-email">Work email</label><input id="ad-email" name="email" type="email" autocomplete="email" required /></div>
+        <div class="field"><label for="ad-phone">Phone <small>(optional)</small></label><input id="ad-phone" name="phone" type="tel" autocomplete="tel" /></div>
+      </div>
+      <fieldset class="field"><legend>Interested in</legend><div class="checks">
+        {p.formats.map((f) => <label><input type="checkbox" name="formats" value={f} /> {f}</label>)}
+      </div></fieldset>
+      <div class="field"><label for="ad-budget">Budget</label><select id="ad-budget" name="budget" required><option value="">Choose a range</option>{p.budgets.map((b) => <option>{b}</option>)}</select></div>
+      <div class="field"><label for="ad-msg">Tell us about your campaign</label><textarea id="ad-msg" name="message" required minlength="10" placeholder="What are you launching, who do you want to reach, and when?"></textarea></div>
+      <div><button class="btn" type="submit">Request media kit</button></div>
+      <p class="form-status" role="status"></p>
+    </form>
+  </div></section>
+</Layout>
+
+<script>
+  import {$, bindForm} from '../scripts/core'
+  bindForm($<HTMLFormElement>('form[name=advertise]')!, {okText: 'Thank you. We will send the media kit within two working days.'})
+</script>

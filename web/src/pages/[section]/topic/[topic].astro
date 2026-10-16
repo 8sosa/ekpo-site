@@ -1,0 +1,29 @@
+---
+import Layout from '../../../layouts/Layout.astro'
+import PageHead from '../../../components/PageHead.astro'
+import StoryList from '../../../components/StoryList.astro'
+import {getSite, U, type Section, type Topic} from '../../../lib/data'
+
+export async function getStaticPaths() {
+  const site = await getSite()
+  return site.sections.flatMap((section) =>
+    section.topics.map((topic) => ({params: {section: section.slug, topic: topic.slug}, props: {section, topic}})),
+  )
+}
+interface Props { section: Section; topic: Topic }
+const {section: s, topic: t} = Astro.props
+const site = await getSite()
+const list = site.inSection(s.slug, t.slug)
+---
+<Layout title={`${t.name} | ${s.name}`} description={s.note} image={list[0]?.mainImage} page="section">
+  <PageHead crumbs={[['Home', '/'], [s.name, U.section(s.slug)], [t.name]]} title={t.name} lede={s.note}>
+    <nav class="chips" aria-label={`${s.name} topics`}>
+      <a href={U.section(s.slug)} aria-current="false">All</a>
+      {s.topics.map((x) => <a href={U.topic(s.slug, x.slug)} aria-current={x.slug === t.slug ? 'true' : 'false'}>{x.name}</a>)}
+    </nav>
+  </PageHead>
+  <div class="page-body"><div class="wrap">
+    <StoryList list={list} emptyText={`No ${t.name} stories yet.`} />
+    {list.length === 0 && <p><a class="btn ghost" href={U.section(s.slug)}>See all {s.name}</a></p>}
+  </div></div>
+</Layout>

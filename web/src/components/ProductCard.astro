@@ -1,0 +1,13 @@
+---
+import Media from './Media.astro'
+import {naira, type Product} from '../lib/data'
+
+interface Props { p: Product }
+const {p} = Astro.props
+---
+<article class="product-card">
+  <a class="img" href={p.url} tabindex="-1" aria-hidden="true"><Media image={p.image} seed={p.seed} w={640} h={800} figure={false} /></a>
+  <span class="cat">{p.category}</span>
+  <h3><a href={p.url}>{p.name}</a></h3>
+  <p class="price">{p.available === false ? 'Sold out' : naira(p.price)}</p>
+</article>

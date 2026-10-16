@@ -1,0 +1,18 @@
+---
+import Media from './Media.astro'
+import {U, fmtDate, type Article} from '../lib/data'
+
+interface Props { a: Article; w?: number; h?: number; read?: boolean; bare?: boolean }
+const {a, w = 800, h = 600, read = false, bare = false} = Astro.props
+const Tag = bare ? Fragment : 'article'
+---
+<Tag {...(bare ? {} : {class: 'card'})}>
+  <a class="img" href={a.url} tabindex="-1" aria-hidden="true"><Media image={a.mainImage} seed={a.seed} w={w} h={h} /></a>
+  <div class="body">
+    <a class="cat" href={U.section(a.section)}>{a.sectionName}</a>
+    <h3><a href={a.url}>{a.title}</a></h3>
+    <p class="ex">{a.excerpt}</p>
+    <p class="meta">By {a.writer.name}, <time datetime={a.publishedAt}>{fmtDate(a.publishedAt)}</time></p>
+    {read && <a class="read" href={a.url}>Read the story</a>}
+  </div>
+</Tag>

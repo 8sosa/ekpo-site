@@ -1,0 +1,11 @@
+---
+import VideoIndex from '../../../components/VideoIndex.astro'
+import {getSite, slugify} from '../../../lib/data'
+
+export async function getStaticPaths() {
+  const site = await getSite()
+  return site.videoCategories.map((category) => ({params: {cat: slugify(category)}, props: {category}}))
+}
+const {category} = Astro.props
+---
+<VideoIndex category={category} />

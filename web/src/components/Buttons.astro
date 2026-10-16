@@ -1,0 +1,13 @@
+---
+import type {Cta} from '../lib/data'
+
+interface Props { items?: Cta[] }
+const {items = []} = Astro.props
+---
+{items.length > 0 && (
+  <div class="btn-row">
+    {items.map((b) => (
+      <a class:list={['btn', {ghost: b.style === 'secondary'}]} href={b.href} {...(/^https?:/.test(b.href) ? {target: '_blank', rel: 'noopener'} : {})}>{b.label}</a>
+    ))}
+  </div>
+)}

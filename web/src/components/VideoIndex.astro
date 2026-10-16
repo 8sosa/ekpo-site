@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro'
+import PageHead from './PageHead.astro'
+import VidCard from './VidCard.astro'
+import {getSite, U} from '../lib/data'
+
+interface Props { category?: string }
+const {category} = Astro.props
+const site = await getSite()
+const list = site.videos.filter((v) => !category || v.category === category)
+---
+<Layout title={category ? `${category} | Videos` : 'Videos'} description="Fashion films, studio visits, live sessions and food, made by the EKPO team." nav="videos" page="videos">
+  <PageHead dark crumbs={category ? [['Home', '/'], ['Videos', '/videos/'], [category]] : [['Home', '/'], ['Videos']]} title="EKPO TV" lede="Fashion films, studio visits, live sessions and food, made by the EKPO team.">
+    <nav class="chips" aria-label="Video categories">
+      <a href="/videos/" aria-current={!category ? 'true' : 'false'}>All</a>
+      {site.videoCategories.map((c) => <a href={U.videoCat(c)} aria-current={c === category ? 'true' : 'false'}>{c}</a>)}
+    </nav>
+  </PageHead>
+  <div class="page-body light"><div class="wrap">
+    {list.length ? <div class="vid-list">{list.map((v) => <VidCard v={v} />)}</div> : <p class="empty">No videos yet.</p>}
+  </div></div>
+</Layout>

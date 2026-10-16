@@ -1,0 +1,166 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Card from '../components/Card.astro'
+import Media from '../components/Media.astro'
+import VidCard from '../components/VidCard.astro'
+import ProductCard from '../components/ProductCard.astro'
+import {getSite, U} from '../lib/data'
+import {ARROW_L, ARROW_R} from '../components/Icons'
+
+const site = await getSite()
+const {pinned, sections, videos, products} = site
+---
+<Layout page="home" image={pinned[0]?.article.mainImage}>
+  <h1 class="sr">EKPO: fashion, art and culture from Nigeria</h1>
+  {pinned.length > 0 && (
+    <section class="hero" id="top" aria-roledescription="carousel" aria-label="Featured stories">
+      <div id="slides">
+        {pinned.map((p, i) => (
+          <div class:list={['slide', {on: i === 0}]} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${pinned.length}`} aria-hidden={i ? 'true' : undefined}>
+            <a href={p.article.url} tabindex="-1" aria-hidden="true"><div class="art"><Media image={p.article.mainImage} seed={p.article.seed} w={1600} h={900} eager={i === 0} /></div></a>
+            <div class="copy"><div class="wrap">
+              <a class="tag" href={U.section(p.article.section)} tabindex={i ? -1 : undefined}>{p.article.sectionName}</a>
+              <h2>{p.title}</h2><p>{p.excerpt}</p>
+              <a class="read" href={p.article.url} tabindex={i ? -1 : undefined}>Read the story</a>
+            </div></div>
+          </div>
+        ))}
+      </div>
+      <div class="hero-ctl"><div class="wrap">
+        <div class="dots" id="dots" role="tablist" aria-label="Choose a story">
+          {pinned.map((p, i) => <button role="tab" aria-label={`Story ${i + 1}: ${p.title}`} aria-selected={i === 0 ? 'true' : 'false'} class:list={{on: i === 0}}><i></i></button>)}
+        </div>
+        <button class="pause-btn" id="pauseBtn">Pause</button>
+        <div class="arrows">
+          <button id="prevSlide" aria-label="Previous story" set:html={ARROW_L} />
+          <button id="nextSlide" aria-label="Next story" set:html={ARROW_R} />
+        </div>
+      </div></div>
+    </section>
+  )}
+
+  {sections.map((s, idx) => {
+    const posts = site.inSection(s.slug)
+    if (!posts.length) return null
+    return (
+      <>
+        <section class:list={['sec', {band: idx % 2 === 1}]} id={s.slug} aria-labelledby={`h-${s.slug}`}>
+          <div class="wrap">
+            <div class="sec-head">
+              <h2 id={`h-${s.slug}`}><a href={U.section(s.slug)}>{s.name}</a></h2>
+              {s.layout === 'strip'
+                ? <div class="strip-ctl"><button data-dir="-1" aria-label={`Scroll ${s.name} left`} set:html={ARROW_L} /><button data-dir="1" aria-label={`Scroll ${s.name} right`} set:html={ARROW_R} /></div>
+                : <p>{s.note}</p>}
+            </div>
+            {s.layout === 'lead' && (
+              <div class="l-lead"><div class="big"><Card a={posts[0]} w={1000} h={800} /></div>
+                <div class="side">{posts.slice(1, 4).map((a) => <Card a={a} w={400} h={400} />)}</div></div>
+            )}
+            {s.layout === 'strip' && <div class="l-strip">{posts.slice(0, 8).map((a) => <Card a={a} w={600} h={800} />)}</div>}
+            {s.layout === '3' && <div class="l-3">{posts.slice(0, 3).map((a) => <Card a={a} />)}</div>}
+            {s.layout === '4' && <div class="l-4">{posts.slice(0, 4).map((a) => <Card a={a} />)}</div>}
+            {s.layout === 'spot' && (
+              <>
+                <div class="l-spot card"><Card a={posts[0]} w={900} h={900} read bare /></div>
+                <div class="spot-more">{posts.slice(1, 4).map((a) => <Card a={a} />)}</div>
+              </>
+            )}
+            {s.layout === 'tabs' && (
+              <div class="tabset">
+                <div class="tabs" role="tablist" aria-label={`${s.name} topics`}>
+                  {s.topics.map((t, i) => <button role="tab" id={`tab-${s.slug}-${i}`} aria-selected={i === 0 ? 'true' : 'false'} aria-controls={`panel-${s.slug}-${i}`} tabindex={i ? -1 : undefined}>{t.name}</button>)}
+                </div>
+                {s.topics.map((t, i) => {
+                  const list = site.inSection(s.slug, t.slug).slice(0, 4)
+                  return (
+                    <div class="l-4 tabpanel" role="tabpanel" id={`panel-${s.slug}-${i}`} aria-labelledby={`tab-${s.slug}-${i}`} hidden={i > 0}>
+                      {list.length ? list.map((a) => <Card a={a} />) : <p class="empty">New {t.name} stories are on the way.</p>}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <a class="view-more" href={U.section(s.slug)}>View more {s.name}</a>
+          </div>
+        </section>
+        {s.slug === 'interviews' && videos.length > 0 && (
+          <section class="videos" id="videos" aria-labelledby="h-videos"><div class="wrap">
+            <div class="sec-head"><h2 id="h-videos"><a href="/videos/">Videos</a></h2><p>Fashion films, studio visits and live sessions from EKPO TV.</p></div>
+            <div class="vid-grid">{videos.slice(0, 3).map((v) => <VidCard v={v} />)}</div>
+            <a class="view-more" href="/videos/">Watch more on EKPO TV</a>
+          </div></section>
+        )}
+      </>
+    )
+  })}
+
+  {products.length > 0 && (
+    <section class="sec" id="shop" aria-labelledby="h-shop"><div class="wrap">
+      <div class="sec-head"><h2 id="h-shop"><a href="/shop/">Shop</a></h2><p>Print issues, tote bags and pieces from our brand collaborations.</p></div>
+      <div class="shop-grid">{products.slice(0, 4).map((p) => <ProductCard p={p} />)}</div>
+      <a class="view-more" href="/shop/">Visit the EKPO store</a>
+    </div></section>
+  )}
+</Layout>
+
+<script>
+  import {$, $$} from '../scripts/core'
+
+  /* pinned-story slider */
+  const hero = $('.hero')
+  if (hero) {
+    const slides = $$('.slide'), dots = $$('#dots button'), pauseBtn = $('#pauseBtn')!
+    let cur = 0, timer: number | undefined, paused = matchMedia('(prefers-reduced-motion: reduce)').matches
+    const DUR = 6000
+    hero.style.setProperty('--dur', DUR / 1000 + 's')
+    const schedule = () => { clearTimeout(timer); if (!paused && !hero.classList.contains('hover') && slides.length > 1) timer = window.setTimeout(() => go(cur + 1), DUR) }
+    function go(n: number) {
+      const off = slides[cur]
+      off.classList.remove('on'); off.setAttribute('aria-hidden', 'true'); $$('.copy a', off).forEach((a) => (a.tabIndex = -1))
+      dots[cur].classList.remove('on'); dots[cur].setAttribute('aria-selected', 'false')
+      cur = (n + slides.length) % slides.length
+      const on = slides[cur]
+      on.classList.add('on'); on.removeAttribute('aria-hidden'); $$('.copy a', on).forEach((a) => a.removeAttribute('tabindex'))
+      const d = dots[cur]; d.classList.remove('on'); void d.offsetWidth; d.classList.add('on'); d.setAttribute('aria-selected', 'true')
+      schedule()
+    }
+    $('#nextSlide')!.addEventListener('click', () => go(cur + 1))
+    $('#prevSlide')!.addEventListener('click', () => go(cur - 1))
+    dots.forEach((b, i) => b.addEventListener('click', () => go(i)))
+    const setPaused = (p: boolean) => { paused = p; hero.classList.toggle('paused', p); pauseBtn.textContent = p ? 'Play' : 'Pause'; schedule() }
+    pauseBtn.addEventListener('click', () => setPaused(!paused))
+    setPaused(paused)
+    hero.addEventListener('mouseenter', () => { clearTimeout(timer); hero.classList.add('hover', 'paused') })
+    hero.addEventListener('mouseleave', () => { hero.classList.remove('hover'); if (!paused) { hero.classList.remove('paused'); go(cur) } })
+    let tx: number | null = null
+    hero.addEventListener('touchstart', (e) => (tx = e.touches[0].clientX), {passive: true})
+    hero.addEventListener('touchend', (e) => {
+      if (tx === null) return
+      const dx = e.changedTouches[0].clientX - tx
+      if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1))
+      tx = null
+    })
+  }
+
+  /* editorial strip scroll buttons */
+  $$('.strip-ctl button').forEach((b) => b.addEventListener('click', () => {
+    const s = b.closest('.wrap')!.querySelector<HTMLElement>('.l-strip')!
+    s.scrollBy({left: s.clientWidth * 0.8 * Number(b.dataset.dir), behavior: 'smooth'})
+  }))
+
+  /* topic tabs (panels are pre-rendered; this just switches them) */
+  $$('.tabset').forEach((set) => {
+    const tabs = $$('[role=tab]', set), panels = $$('[role=tabpanel]', set)
+    const select = (i: number) => {
+      tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1 })
+      panels.forEach((p, k) => (p.hidden = k !== i))
+    }
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(i))
+      t.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+        if (d) { const n = (i + d + tabs.length) % tabs.length; select(n); tabs[n].focus() }
+      })
+    })
+  })
+</script>

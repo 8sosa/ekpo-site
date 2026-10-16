@@ -1,0 +1,159 @@
+---
+import Layout from '../layouts/Layout.astro'
+import PageHead from '../components/PageHead.astro'
+import {getSite} from '../lib/data'
+import {imageUrl} from '../lib/sanity'
+
+const site = await getSite()
+const STATES = ['Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT Abuja', 'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara']
+const delivery = site.settings.delivery?.length ? site.settings.delivery : [{code: 'lagos', label: 'Delivery in Lagos', price: 2500, payOnDelivery: true}]
+// What the bag script needs to price and draw each line
+const catalogue = Object.fromEntries(site.products.map((p) => [p.slug, {
+  name: p.name, price: p.price, url: p.url, digital: !!p.digital, available: p.available !== false, seed: p.seed, img: imageUrl(p.image, 320, 400),
+}]))
+const email = site.settings.email
+---
+<Layout title="Your bag" description="Your EKPO shopping bag and checkout." nav="shop" page="bag" signup={false} noindex>
+  <PageHead crumbs={[['Home', '/'], ['Shop', '/shop/'], ['Bag']]} title="Your bag" />
+  <div class="page-body"><div class="wrap">
+    <div id="cartView"></div>
+    <form class="cart" id="checkout" name="order" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="order" />
+      <div>
+        <ul class="cart-lines" id="lines"></ul>
+        <h2 class="sec-title" style="margin-top:48px">Checkout</h2>
+        <div class="form">
+          <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off" /></label></p>
+          <input type="hidden" name="reference" /><input type="hidden" name="order" /><input type="hidden" name="total" />
+          <div class="two">
+            <div class="field"><label for="c-name">Full name</label><input id="c-name" name="name" autocomplete="name" required /></div>
+            <div class="field"><label for="c-phone">Phone number</label><input id="c-phone" name="phone" type="tel" autocomplete="tel" required pattern="\+?[0-9 ]*(\([0-9]+\))?[0-9 \-]{7,}" title="Enter a phone number, like 0803 123 4567." /></div>
+          </div>
+          <div class="field"><label for="c-email">Email</label><input id="c-email" name="email" type="email" autocomplete="email" required /><small>We send your confirmation and any tickets here.</small></div>
+          <div id="shipBlock" class="form">
+            <fieldset class="field"><legend>Delivery</legend><div class="radios">
+              {delivery.map((d, i) => (
+                <label><input type="radio" name="delivery" value={d.code} required checked={i === 0} /><span>{d.label}</span><span class="p">{d.price ? `₦${d.price.toLocaleString('en-NG')}` : 'Free'}</span></label>
+              ))}
+            </div></fieldset>
+            <div class="field"><label for="c-addr">Delivery address</label><input id="c-addr" name="address" autocomplete="street-address" required /></div>
+            <div class="two">
+              <div class="field"><label for="c-city">City or town</label><input id="c-city" name="city" autocomplete="address-level2" required /></div>
+              <div class="field"><label for="c-state">State</label><select id="c-state" name="state" required><option value="">Choose a state</option>{STATES.map((s) => <option>{s}</option>)}</select></div>
+            </div>
+          </div>
+          <fieldset class="field"><legend>Payment</legend><div class="radios">
+            <label><input type="radio" name="payment" value="Bank transfer" checked required /><span>Bank transfer<br /><small>We email you our account details and the amount. Your order ships once payment is confirmed.</small></span></label>
+            <label><input type="radio" name="payment" value="Pay on delivery" /><span>Pay on delivery<br /><small>Only for some delivery areas. Cash or transfer to the rider.</small></span></label>
+          </div></fieldset>
+          <div class="field"><label for="c-notes">Order notes <small>(optional)</small></label><textarea id="c-notes" name="notes" style="min-height:90px" placeholder="Landmarks, gate codes, or anything we should know"></textarea></div>
+        </div>
+      </div>
+      <aside class="summary">
+        <h2>Summary</h2>
+        <div id="sumRows"></div>
+        <button class="btn" type="submit" style="width:100%;margin-top:20px">Place order</button>
+        <p class="form-status" role="status" style="margin-top:12px"></p>
+        <p class="note-sm">By placing your order you agree to our <a href="/terms/" style="text-decoration:underline">terms of use</a>. Questions? Email <a href={`mailto:${email}`} style="text-decoration:underline">{email}</a>.</p>
+      </aside>
+    </form>
+  </div></div>
+  <script type="application/json" id="shopData" set:html={JSON.stringify({catalogue, delivery})} />
+</Layout>
+
+<script>
+  import {$, $$, esc, Cart, bindForm, pageData, type CartItem} from '../scripts/core'
+  import {art} from '../lib/art'
+  import {naira} from '../lib/format'
+
+  interface Item { name: string; price: number; url: string; digital: boolean; available: boolean; seed: number; img: string | null }
+  interface Delivery { code: string; label: string; price: number; payOnDelivery?: boolean }
+  const {catalogue, delivery} = pageData<{catalogue: Record<string, Item>; delivery: Delivery[]}>('shopData')
+
+  const view = $('#cartView')!, form = $<HTMLFormElement>('#checkout')!
+  // drop anything no longer sold
+  const items = () => Cart.items().filter((i) => catalogue[i.slug]?.available)
+  const lines = () => items().map((i) => ({...i, p: catalogue[i.slug]}))
+  const allDigital = () => lines().every((l) => l.p.digital)
+  function totals() {
+    const ls = lines(), sub = ls.reduce((n, l) => n + l.p.price * l.qty, 0)
+    const code = new FormData(form).get('delivery')
+    const d = allDigital() ? null : delivery.find((x) => x.code === code) || delivery[0]
+    const ship = d ? d.price : 0
+    return {ls, sub, d, ship, total: sub + ship}
+  }
+  const thumb = (p: Item) => (p.img ? `<img class="media-img" src="${p.img}" alt="">` : art(p.seed, {figure: false, w: 320, h: 400}))
+
+  function draw() {
+    const t = totals()
+    if (!t.ls.length) {
+      view.innerHTML = '<div class="done"><h1>Your bag is empty</h1><p>Print issues, tickets and collaborations are waiting in the store.</p><a class="btn" href="/shop/">Go to the shop</a></div>'
+      form.hidden = true
+      return
+    }
+    view.innerHTML = ''
+    form.hidden = false
+    $('#lines')!.innerHTML = t.ls.map((l, i) => `<li class="cart-line">
+      <a class="img" href="${l.p.url}" tabindex="-1" aria-hidden="true">${thumb(l.p)}</a>
+      <div><h3><a href="${l.p.url}">${esc(l.p.name)}</a></h3>${l.opt ? `<p class="opt">${esc(l.opt)}</p>` : ''}<p class="opt">${naira(l.p.price)} each</p>
+        <div class="ctl"><div class="qty"><button type="button" data-i="${i}" data-d="-1" aria-label="Fewer ${esc(l.p.name)}">−</button><input type="number" value="${l.qty}" min="1" max="20" data-i="${i}" aria-label="Quantity of ${esc(l.p.name)}"><button type="button" data-i="${i}" data-d="1" aria-label="More ${esc(l.p.name)}">+</button></div><button type="button" class="rm" data-i="${i}">Remove</button></div></div>
+      <span class="line-total">${naira(l.p.price * l.qty)}</span></li>`).join('')
+    $('#sumRows')!.innerHTML = `<div class="sum-row"><span>Subtotal</span><span>${naira(t.sub)}</span></div>
+      <div class="sum-row"><span>Delivery</span><span>${t.d ? (t.ship ? naira(t.ship) : 'Free') : 'Emailed'}</span></div>
+      <div class="sum-row total"><span>Total</span><span>${naira(t.total)}</span></div>`
+    const digital = allDigital()
+    $('#shipBlock')!.hidden = digital
+    $$<HTMLInputElement | HTMLSelectElement>('#shipBlock input, #shipBlock select').forEach((el) => (el.disabled = digital))
+    const pod = $<HTMLInputElement>('input[name=payment][value="Pay on delivery"]')!
+    const podOk = !!t.d?.payOnDelivery
+    pod.disabled = !podOk
+    pod.closest('label')!.style.opacity = podOk ? '1' : '.45'
+    if (!podOk && pod.checked) $<HTMLInputElement>('input[name=payment][value="Bank transfer"]')!.checked = true
+  }
+  const edit = (i: number, fn: (it: CartItem) => void) => {
+    const list = items()
+    fn(list[i])
+    Cart.save(list)
+    draw()
+  }
+  const clamp = (n: number) => Math.min(20, Math.max(1, n || 1))
+  $('#lines')!.addEventListener('click', (e) => {
+    const b = (e.target as Element).closest<HTMLButtonElement>('button')
+    if (!b) return
+    if (b.classList.contains('rm')) edit(Number(b.dataset.i), (it) => (it.qty = 0))
+    else if (b.dataset.d) edit(Number(b.dataset.i), (it) => (it.qty = clamp(it.qty + Number(b.dataset.d))))
+  })
+  $('#lines')!.addEventListener('change', (e) => {
+    const el = e.target as HTMLInputElement
+    if (el.matches('input')) edit(Number(el.dataset.i), (it) => (it.qty = clamp(Number(el.value))))
+  })
+  form.addEventListener('change', (e) => { if ((e.target as HTMLInputElement).name === 'delivery') draw() })
+
+  bindForm(form, {
+    extra() {
+      const t = totals(), ref = 'EK-' + Date.now().toString(36).toUpperCase().slice(-6)
+      form.dataset.ref = ref
+      return {
+        reference: ref,
+        order: t.ls.map((l) => `${l.qty} x ${l.p.name}${l.opt ? ` (${l.opt})` : ''} @ ${naira(l.p.price)} = ${naira(l.p.price * l.qty)}`).join('\n'),
+        delivery: t.d ? t.d.label : 'Emailed (tickets only)',
+        total: `${naira(t.total)} (subtotal ${naira(t.sub)}, delivery ${naira(t.ship)})`,
+      }
+    },
+    onSuccess() {
+      const fd = new FormData(form), ref = form.dataset.ref!
+      Cart.save([])
+      view.innerHTML = `<div class="done" tabindex="-1" id="doneMsg"><h1>Thank you</h1>
+        <p>Your order is in. We will send a confirmation to <strong>${esc(fd.get('email'))}</strong>.</p>
+        <span class="ref">Order ${esc(ref)}</span>
+        <p>${fd.get('payment') === 'Pay on delivery'
+          ? 'Please have the exact amount ready when your order arrives. Our rider will call before delivery.'
+          : 'We will email you our bank details and the amount to pay within one working day. Your order ships as soon as payment is confirmed.'}</p>
+        <a class="btn" href="/">Back to EKPO</a></div>`
+      form.hidden = true
+      $('#doneMsg')!.focus()
+      scrollTo(0, 0)
+    },
+  })
+  draw()
+</script>

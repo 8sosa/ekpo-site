@@ -1,0 +1,13 @@
+---
+/* A Sanity photo when there is one, otherwise EKPO placeholder art. */
+import {art} from '../lib/art'
+import {imageUrl, type SanityImage} from '../lib/sanity'
+
+interface Props { image?: SanityImage | null; seed: number; w?: number; h?: number; figure?: boolean; alt?: string; eager?: boolean }
+const {image, seed, w = 800, h = 600, figure = true, alt = '', eager = false} = Astro.props
+const src = imageUrl(image, w, h)
+const src2x = imageUrl(image, w * 2, h * 2)
+---
+{src
+  ? <img class="media-img" src={src} srcset={`${src} 1x, ${src2x} 2x`} width={w} height={h} alt={image?.alt || alt} loading={eager ? 'eager' : 'lazy'} decoding="async" />
+  : <Fragment set:html={art(seed, {figure, w, h})} />}

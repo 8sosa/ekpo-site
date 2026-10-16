@@ -1,0 +1,16 @@
+---
+import Media from './Media.astro'
+import type {Video} from '../lib/data'
+
+interface Props { v: Video }
+const {v} = Astro.props
+---
+<a class="vid" href={v.url}>
+  <div class="img">
+    <Media image={v.thumbnail} seed={v.seed} w={800} h={500} />
+    {v.duration && <span class="dur">{v.duration}</span>}
+    <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4l14 8-14 8z" /></svg></span>
+  </div>
+  <span class="cat">{v.category}</span>
+  <h3>{v.title}</h3>
+</a>

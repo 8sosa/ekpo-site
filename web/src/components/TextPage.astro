@@ -1,0 +1,17 @@
+---
+/* A simple text page (privacy, terms) whose content is edited in Sanity under Pages. */
+import Layout from '../layouts/Layout.astro'
+import PageHead from './PageHead.astro'
+import {getSite, fmtDate} from '../lib/data'
+import {renderBody} from '../lib/portableText'
+
+interface Props { slug: string }
+const site = await getSite()
+const page = site.pages.find((p) => p.slug === Astro.props.slug)
+if (!page) throw new Error(`Missing Sanity page with URL "${Astro.props.slug}". Create it under Pages in the Studio.`)
+const lede = [page.intro, page.updatedAt && `Last updated ${fmtDate(page.updatedAt)}.`].filter(Boolean).join(' ')
+---
+<Layout title={page.title} description={page.intro || `${page.title} for EKPO.`} page="legal">
+  <PageHead crumbs={[['Home', '/'], [page.title]]} title={page.title} lede={lede} />
+  <div class="page-body"><div class="wrap legal-page" set:html={renderBody(page.body || [])} /></div>
+</Layout>

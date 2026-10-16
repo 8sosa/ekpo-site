@@ -1,0 +1,30 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import Crumbs from '../../components/Crumbs.astro'
+import Card from '../../components/Card.astro'
+import Media from '../../components/Media.astro'
+import {getSite, initials, type Writer} from '../../lib/data'
+
+export async function getStaticPaths() {
+  const site = await getSite()
+  return site.writers.map((writer) => ({params: {slug: writer.slug}, props: {writer}}))
+}
+interface Props { writer: Writer }
+const {writer: w} = Astro.props
+const site = await getSite()
+const list = site.byWriter(w.slug)
+---
+<Layout title={w.name} description={w.bio} image={w.photo} page="writer">
+  <header class="page-head"><div class="wrap">
+    <Crumbs items={[['Home', '/'], ['About', '/about/'], [w.name]]} />
+    <div class="author-head">
+      <div class="avatar" aria-hidden="true">{w.photo?.asset ? <Media image={w.photo} seed={1} w={240} h={240} /> : initials(w.name)}</div>
+      <div><h1>{w.name}</h1>{w.role && <p class="role">{w.role}</p>}</div>
+    </div>
+    {w.bio && <p class="lede">{w.bio}</p>}
+  </div></header>
+  <div class="page-body"><div class="wrap">
+    <p class="count">{list.length} {list.length === 1 ? 'story' : 'stories'} by {w.name}</p>
+    {list.length ? <div class="l-3">{list.map((a) => <Card a={a} />)}</div> : <p class="empty">No stories yet.</p>}
+  </div></div>
+</Layout>

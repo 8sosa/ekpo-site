@@ -1,0 +1,51 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import Crumbs from '../../components/Crumbs.astro'
+import Media from '../../components/Media.astro'
+import VidCard from '../../components/VidCard.astro'
+import {getSite, U, fmtDate, type Video} from '../../lib/data'
+
+export async function getStaticPaths() {
+  const site = await getSite()
+  return site.videos.map((video) => ({params: {slug: video.slug}, props: {video}}))
+}
+interface Props { video: Video }
+const {video: v} = Astro.props
+const site = await getSite()
+const others = site.videos.filter((x) => x !== v).slice(0, 3)
+---
+<Layout title={v.title} description={v.description} image={v.thumbnail} nav="videos" page="video">
+  <section class="vid-page"><div class="wrap">
+    <Crumbs items={[['Home', '/'], ['Videos', '/videos/'], [v.category, U.videoCat(v.category)]]} />
+    <div class="player">
+      {v.youtubeId
+        ? <iframe src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.youtubeId)}?rel=0`} title={v.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+        : v.videoUrl
+          ? <video src={v.videoUrl} controls preload="metadata" playsinline></video>
+          : (
+            <>
+              <Media image={v.thumbnail} seed={v.seed} w={1600} h={900} eager />
+              <div class="over">
+                <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4l14 8-14 8z" /></svg></span>
+                <p>This film is being uploaded. Subscribe to the newsletter and we will tell you when it is live.</p>
+                <button class="btn gold" type="button" data-open-pop>Notify me</button>
+              </div>
+            </>
+          )}
+    </div>
+    <h1>{v.title}</h1>
+    <p class="meta">{[v.category, v.duration, fmtDate(v.publishedAt)].filter(Boolean).join(' · ')}</p>
+    {v.description && <p class="desc">{v.description} {v.related && <a href={v.related.url}>Read the story</a>}</p>}
+  </div></section>
+  {others.length > 0 && (
+    <section class="sec light"><div class="wrap">
+      <div class="sec-head"><h2>More videos</h2></div>
+      <div class="vid-list">{others.map((x) => <VidCard v={x} />)}</div>
+      <a class="view-more" href="/videos/">All videos</a>
+    </div></section>
+  )}
+</Layout>
+
+<script>
+  document.querySelector('[data-open-pop]')?.addEventListener('click', () => document.getElementById('openPop')!.click())
+</script>
